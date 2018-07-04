@@ -14,8 +14,16 @@ class App extends Component {
     this.fetchSecureData = this.fetchSecureData.bind(this);
   }
 
+  componentDidMount() {
+    axios.get('/api/user-data').then( res => {
+      this.setState({user: res.data.user ? res.data.user : null})
+    })
+  }
+
   login() {
-    alert('Need to implement the login() method in App.js!');
+    let {REACT_APP_AUTH0_DOMAIN, REACT_APP_AUTH0_CLIENT_ID} = process.env;
+    let redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
+    window.location = `https://${REACT_APP_AUTH0_DOMAIN}/authorize?client_id=${REACT_APP_AUTH0_CLIENT_ID}&scope=openid%20profile%20email&redirect_uri=${redirectUri}&response_type=code`;
   }
 
   logout() {

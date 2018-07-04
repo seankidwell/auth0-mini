@@ -5,7 +5,7 @@ const massive = require('massive');
 const axios = require('axios');
 
 require('dotenv').config();
-massive(process.env.CONNECTION_STRING).then(db => app.set('db', db));
+// massive(process.env.CONNECTION_STRING).then(db => app.set('db', db));
 
 const app = express();
 app.use(bodyPaser.json());
@@ -14,7 +14,7 @@ app.use(session({
   saveUninitialized: false,
   resave: false,
 }));
-app.use(express.static(`${__dirname}/../build`));
+// app.use(express.static(`${__dirname}/../build`));
 
 
 
@@ -25,14 +25,15 @@ app.get('/auth/callback', (req, res) => {
   // STEP 1.)
   //Make an object called payload with the code recieved from the clientside, client_id, client_secret, grant_type, redirect_uri 
   //hint: code is recieved from client side as a query
-  
-  let payload ={
+  let {REACT_APP_AUTH0_CLIENT_ID, REACT_APP_AUTH0_CLIENT_SECRET} = process.env;
+
+  let payload = {
     
-    // client_id
-    // client_secret
-    // code
-    // grant_type 
-    // redirect_uri
+    client_id: REACT_APP_AUTH0_CLIENT_ID,
+    client_secret: REACT_APP_AUTH0_CLIENT_SECRET,
+    code: req.query.code,
+    grant_type: 'authorization_code',
+    redirect_uri: `http://${req.headers.host}/auth/callback`
     
   }
   
@@ -42,15 +43,15 @@ app.get('/auth/callback', (req, res) => {
   function tradeCodeForAccessToken(){
     
     //code here..
-    
+    return axios.post(`https://${process.env.REACT_APP_AUTH0_DOMAIN}/oauth/token`, payload)
   }
   
   //STEP 3.)
   // WRITE a FUNCTION that accepts the access token as a parameter and RETURNS an axios GET to auth0 that passes the access token as a query
-  function tradeAccessTokenForUserInfo(){
-    
+  function tradeAccessTokenForUserInfo(response){
+    let token = response.data.access_token;
     //code here ..
-    
+    return axios.get(`https://${process.env.REACT_APP_AUTH0_DOMAIN}/userinfo?access_token=${token}`)
   }
   
   
@@ -58,18 +59,19 @@ app.get('/auth/callback', (req, res) => {
   
   // WRITE a FUNCTION that accepts the userInfo as a parameter and RETURNS a block of code.
   // Your code should set session, check your database to see if user exists and return thier info or if they dont exist, insert them into the database
-  function storeUserInfoInDataBase(){
+  function storeUserInfoInDataBase(response){
     
     //code here...
-    
+    req.session.user = response.data;
+    res.redirect('http://localhost:3000')
   }
    
   //Final Code, Uncomment after completeing steps 1-4 above
   
-  // tradeCodeForAccessToken()
-  // .then(accessToken => tradeAccessTokenForUserInfo(accessToken))
-  // .then(userInfo => storeUserInfoInDataBase(userInfo));
-  // })
+  tradeCodeForAccessToken()
+  .then(accessToken => tradeAccessTokenForUserInfo(accessToken))
+  .then(userInfo => storeUserInfoInDataBase(userInfo));
+  
   
 });
 
